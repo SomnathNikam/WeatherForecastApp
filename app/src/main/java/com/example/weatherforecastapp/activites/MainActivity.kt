@@ -1,14 +1,16 @@
 package com.example.weatherforecastapp.activites
 
-import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.icu.text.SimpleDateFormat
 import android.location.Location
 import android.location.LocationManager
+import android.location.LocationRequest
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -20,31 +22,30 @@ import android.view.MenuItem
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.weatherforecastapp.Manifest
+import com.example.weatherforecastapp.R
+import com.example.weatherforecastapp.databinding.ActivityMainBinding
 import com.example.weatherforecastapp.models.WeatherResponse
 import com.example.weatherforecastapp.network.WeatherService
 import com.example.weatherforecastapp.utils.Constants
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
-//import com.weatherforecastapp.R
-//import com.weatherapp.models.WeatherResponse
-//import com.weatherapp.network.WeatherService
-//import com.weatherapp.utils.Constants
-//import kotlinx.android.synthetic.main.activity_main.*
-//import retrofit.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.TimeZone
 
 // OpenWeather Link : https://openweathermap.org/api
 class MainActivity : AppCompatActivity() {
@@ -66,11 +67,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mSharedPreferences: SharedPreferences
     // END
 
+    private lateinit var binding: ActivityMainBinding
+
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        setContentView(R.layout.activity_main)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         val tv_main = findViewById<TextView>(R.id.tv_main)
         val tv_main_descriptor = findViewById<TextView>(R.id.tv_main_description)
@@ -192,7 +195,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingPermission")
     private fun requestLocationData() {
 
-        val mLocationRequest = LocationRequest()
+        val mLocationRequest = com.google.android.gms.location.LocationRequest()
         mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -208,7 +211,7 @@ class MainActivity : AppCompatActivity() {
     private val mLocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
 
-            val mLastLocation: Location = locationResult.lastLocation
+            val mLastLocation: Location? = locationResult.lastLocation
             mLatitude = mLastLocation.latitude
             Log.e("Current Latitude", "$mLatitude")
             mLongitude = mLastLocation.longitude
@@ -267,12 +270,12 @@ class MainActivity : AppCompatActivity() {
                 ) {
 
                     // Check weather the response is success or not.
-                    if (response.isSuccess) {
+                    if (response.isSuccessful) {
 
                         hideProgressDialog() // Hides the progress dialog
 
                         /** The de-serialized response body of a successful response. */
-                        val weatherList: WeatherResponse = response.body()
+                        val weatherList: WeatherResponse? = response.body()
                         Log.i("Response Result", "$weatherList")
 
                         // TODO (STEP 4: Here we convert the response object to string and store the string in the SharedPreference.)
@@ -329,7 +332,7 @@ class MainActivity : AppCompatActivity() {
 
         /*Set the screen content from a layout resource.
         The resource will be inflated, adding all top-level views to the screen.*/
-        mProgressDialog!!.setContentView(R.layout.dialog_custom_progress)
+        mProgressDialog!!.setContentView(R.layout.progressbar_custom_dialog)
 
         //Start the dialog and display it on screen.
         mProgressDialog!!.show()
@@ -366,18 +369,18 @@ class MainActivity : AppCompatActivity() {
             for (z in weatherList.weather.indices) {
                 Log.i("NAMEEEEEEEE", weatherList.weather[z].main)
 
-                tv_main.text = weatherList.weather[z].main
-                tv_main_description.text = weatherList.weather[z].description
-                tv_temp.text =
+                binding.tv_main.text = weatherList.weather[z].main
+                binding.tv_main_description.text = weatherList.weather[z].description
+                binding.tv_temp.text =
                     weatherList.main.temp.toString() + getUnit(application.resources.configuration.locales.toString())
-                tv_humidity.text = weatherList.main.humidity.toString() + " per cent"
-                tv_min.text = weatherList.main.tempMin.toString() + " min"
-                tv_max.text = weatherList.main.tempMax.toString() + " max"
-                tv_speed.text = weatherList.wind.speed.toString()
-                tv_name.text = weatherList.name
-                tv_country.text = weatherList.sys.country
-                tv_sunrise_time.text = unixTime(weatherList.sys.sunrise.toLong())
-                tv_sunset_time.text = unixTime(weatherList.sys.sunset.toLong())
+                binding.tv_humidity.text = weatherList.main.humidity.toString() + " per cent"
+                binding.tv_min.text = weatherList.main.tempMin.toString() + " min"
+                binding.tv_max.text = weatherList.main.tempMax.toString() + " max"
+                binding.tv_speed.text = weatherList.wind.speed.toString()
+                binding.tv_name.text = weatherList.name
+                binding.tv_country.text = weatherList.sys.country
+                binding.tv_sunrise_time.text = unixTime(weatherList.sys.sunrise.toLong())
+                binding.tv_sunset_time.text = unixTime(weatherList.sys.sunset.toLong())
 
                 // Here we update the main icon
                 when (weatherList.weather[z].icon) {
@@ -424,3 +427,4 @@ class MainActivity : AppCompatActivity() {
         return sdf.format(date)
     }
 }
+
